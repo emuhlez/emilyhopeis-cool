@@ -239,11 +239,19 @@ button {
 }
 
 .detail-image {
+  position: relative;
+  width: 100%;
   height: 100%;
   min-height: 0;
+  appearance: none;
+  border: 0;
+  padding: 0;
   overflow: hidden;
   border-radius: 18px;
   background: #dfddd7;
+  color: white;
+  cursor: zoom-in;
+  text-align: left;
 }
 
 .detail-image img {
@@ -251,6 +259,50 @@ button {
   height: 100%;
   display: block;
   object-fit: cover;
+  transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.detail-image::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(10, 10, 9, 0.48), transparent 32%);
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.detail-image:hover img,
+.detail-image:focus-visible img {
+  transform: scale(1.02);
+}
+
+.detail-image:hover::after,
+.detail-image:focus-visible::after,
+.detail-image:hover .detail-image-hint,
+.detail-image:focus-visible .detail-image-hint {
+  opacity: 1;
+}
+
+.detail-image:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.detail-image-hint {
+  position: absolute;
+  z-index: 1;
+  right: 18px;
+  bottom: 16px;
+  left: 18px;
+  display: flex;
+  justify-content: space-between;
+  color: white;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity 220ms ease;
 }
 
 .detail-copy {
@@ -341,6 +393,293 @@ body[data-overlay-open="true"] canvas {
   filter: saturate(0.6);
 }
 
+.image-viewer {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.image-viewer.is-open {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.image-viewer-scrim {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  appearance: none;
+  border: 0;
+  background: rgba(12, 12, 11, 0.82);
+  opacity: 0;
+  backdrop-filter: blur(14px);
+  cursor: zoom-out;
+  transition: opacity 240ms ease;
+}
+
+.image-viewer.is-open .image-viewer-scrim {
+  opacity: 1;
+}
+
+.image-viewer-dialog {
+  position: absolute;
+  inset: 12px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 22px;
+  background: #11110f;
+  color: white;
+  opacity: 0;
+  transform: scale(0.98);
+  transition:
+    opacity 220ms ease,
+    transform 360ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.image-viewer.is-open .image-viewer-dialog {
+  opacity: 1;
+  transform: none;
+}
+
+.image-viewer-toolbar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 64px;
+  padding: 10px 12px 10px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.image-viewer-toolbar > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.image-viewer-controls {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}
+
+.image-viewer-controls button {
+  display: grid;
+  place-items: center;
+  min-width: 38px;
+  height: 38px;
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  padding: 0 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  cursor: pointer;
+}
+
+.image-viewer-controls button:hover:not(:disabled),
+.image-viewer-controls button:focus-visible {
+  border-color: rgba(255, 255, 255, 0.56);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.image-viewer-controls button:focus-visible {
+  outline: 1px solid white;
+  outline-offset: 2px;
+}
+
+.image-viewer-controls button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.image-viewer-controls .zoom-level {
+  min-width: 64px;
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.image-viewer-open {
+  display: grid;
+  place-items: center;
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.image-viewer-open:hover,
+.image-viewer-open:focus-visible {
+  border-color: rgba(255, 255, 255, 0.56);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.image-viewer-controls .image-viewer-close {
+  margin-left: 6px;
+}
+
+.image-viewer-close svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.image-viewer-stage {
+  position: relative;
+  display: grid;
+  min-height: 0;
+  place-items: center;
+  overflow: hidden;
+  user-select: none;
+}
+
+.image-viewer-stage.is-zoomed {
+  cursor: grab;
+  touch-action: none;
+}
+
+.image-viewer-stage.is-zoomed:active {
+  cursor: grabbing;
+}
+
+.image-viewer-image {
+  display: block;
+  max-width: calc(100% - 48px);
+  max-height: calc(100% - 48px);
+  object-fit: contain;
+  transform-origin: center;
+  will-change: transform;
+  transition: transform 180ms ease;
+}
+
+.image-viewer-stage.is-zoomed .image-viewer-image {
+  transition: none;
+}
+
+/* The monitor is a live prototype in a case, not a picture of one: every part
+   below is a fraction of --mac-w, the screen width measured against the stage,
+   so the whole display stays in proportion at any size. */
+/* `safe` keeps the top-left of the monitor reachable once zoom pushes it past
+   the stage; plain centring would scroll it out of reach. */
+.image-viewer-stage.is-embed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  overflow: auto;
+  user-select: auto;
+}
+
+.mac-display {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+}
+
+.mac-display-bezel {
+  position: relative;
+  padding: calc(var(--mac-w) * 0.03) calc(var(--mac-w) * 0.025);
+  padding-bottom: calc(var(--mac-w) * 0.115);
+  border-radius: calc(var(--mac-w) * 0.018);
+  /* The chin is the tail of this gradient, so it reads a shade heavier than
+     the bezels the way the aluminium does. */
+  background: linear-gradient(180deg, #f4f5f6 0%, #e7e9eb 62%, #d2d5d9 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.08),
+    0 50px 90px -34px rgba(0, 0, 0, 0.8);
+}
+
+.mac-display-camera {
+  position: absolute;
+  top: calc(var(--mac-w) * 0.015);
+  left: 50%;
+  width: calc(var(--mac-w) * 0.0045);
+  height: calc(var(--mac-w) * 0.0045);
+  border-radius: 999px;
+  background: #2b2c2f;
+  transform: translate(-50%, -50%);
+}
+
+.mac-display-screen {
+  position: relative;
+  width: var(--mac-w);
+  height: var(--mac-h);
+  overflow: hidden;
+  border-radius: calc(var(--mac-w) * 0.004);
+  background: #000;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.55);
+}
+
+/* Laid out at its own logical viewport and scaled to the glass, so the
+   prototype renders its desktop layout no matter how big the monitor is drawn
+   and zoom magnifies the real render rather than resampling a bitmap. */
+.mac-display-frame {
+  display: block;
+  border: 0;
+  transform: scale(var(--mac-scale));
+  transform-origin: top left;
+}
+
+.mac-display-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* The 24-inch stand is a flat rectangular slab rather than the tapered neck of
+   a Studio Display. */
+.mac-display-neck {
+  width: calc(var(--mac-w) * 0.237);
+  height: calc(var(--mac-w) * 0.153);
+  border-radius: 0 0 calc(var(--mac-w) * 0.004) calc(var(--mac-w) * 0.004);
+  background: linear-gradient(
+    90deg,
+    #aeb1b6 0%,
+    #e3e5e8 18%,
+    #f3f4f5 46%,
+    #d5d8dc 74%,
+    #a5a8ad 100%
+  );
+}
+
+.mac-display-base {
+  width: calc(var(--mac-w) * 0.312);
+  height: calc(var(--mac-w) * 0.017);
+  border-radius: calc(var(--mac-w) * 0.008);
+  background: linear-gradient(180deg, #e8eaec 0%, #c6c9cd 52%, #9a9da2 100%);
+  box-shadow: 0 26px 40px -22px rgba(0, 0, 0, 0.7);
+}
+
 @media (max-width: 760px) {
   .site-nav {
     padding: 16px;
@@ -397,6 +736,14 @@ body[data-overlay-open="true"] canvas {
     min-height: 0;
   }
 
+  .detail-image::after {
+    opacity: 1;
+  }
+
+  .detail-image-hint {
+    opacity: 1;
+  }
+
   .detail-copy {
     align-self: end;
   }
@@ -409,11 +756,45 @@ body[data-overlay-open="true"] canvas {
   .about-detail {
     padding: 72px 24px 32px;
   }
+
+  .image-viewer-dialog {
+    inset: 8px;
+    border-radius: 17px;
+  }
+
+  .image-viewer-toolbar {
+    min-height: 58px;
+    padding: 8px 8px 8px 14px;
+  }
+
+  .image-viewer-toolbar > span {
+    display: none;
+  }
+
+  .image-viewer-controls {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .image-viewer-controls .image-viewer-close {
+    margin-left: auto;
+  }
+
+  .image-viewer-image {
+    max-width: calc(100% - 24px);
+    max-height: calc(100% - 24px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .detail-panel,
-  .overlay-scrim {
+  .overlay-scrim,
+  .detail-image img,
+  .detail-image::after,
+  .detail-image-hint,
+  .image-viewer-scrim,
+  .image-viewer-dialog,
+  .image-viewer-image {
     transition: none;
   }
 }

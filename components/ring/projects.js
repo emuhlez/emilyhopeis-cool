@@ -13,6 +13,15 @@ export const PROJECTS = [
     href: "https://emilysdesk.top",
     linkLabel: "Open Emily's Desktop",
     external: true,
+    // The viewer runs the real site rather than a screenshot. The viewport is
+    // the logical size the iframe is laid out at before it is scaled to the
+    // monitor, so the desk renders its desktop layout at any display size.
+    // 16:9 to match the iMac panel it is shown in.
+    prototype: {
+      kind: "site",
+      src: "https://emilysdesk.top",
+      viewport: { width: 1440, height: 810 },
+    },
   },
   {
     file: "project-02.jpg",
