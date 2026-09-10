@@ -1,13 +1,14 @@
 {
-  "name": "emilyhopeis-cool",
+  "name": "emilyhopeis.cool",
   "version": "1.0.0",
   "description": "Emily Hope portfolio site",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 5180",
-    "site": "open http://localhost:5180/",
+    "dev": "next dev -p 5190",
+    "site": "open http://localhost:5190/",
+    "shot": "node scripts/shot.js",
     "build": "next build",
-    "start": "next start -p 5180",
+    "start": "next start -p 5190",
     "lint": "eslint .",
     "legacy": "python3 serve.py 5174"
   },
