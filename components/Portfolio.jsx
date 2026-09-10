@@ -1,57 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Carousel from "./Carousel";
-import { PROJECTS } from "./ring/projects";
+import { PROJECTS, projectMedia } from "./ring/projects";
+import { useSystemTheme } from "./systemTheme";
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 0.5;
 
-// Breathing room between the monitor and the edges of the viewer stage.
-const MAC_STAGE_MARGIN = 40;
-
-// Every part of the monitor is a fraction of its screen width, so the whole
-// display is driven by a single measured number and stays in proportion.
-// Ratios are taken off a straight-on 24-inch iMac: thin bezels, a deep chin,
-// and a flat rectangular stand.
-const MAC_FRAME = {
-  padSide: 0.025,
-  padTop: 0.03,
-  chin: 0.115,
-  neckHeight: 0.153,
-  baseHeight: 0.017,
-};
-
-function computeMacWidth(stageWidth, stageHeight, screenRatio) {
-  if (stageWidth <= 0 || stageHeight <= 0 || screenRatio <= 0) return 0;
-
-  const widthLimit =
-    (stageWidth - MAC_STAGE_MARGIN * 2) / (1 + MAC_FRAME.padSide * 2);
-  const heightLimit =
-    (stageHeight - MAC_STAGE_MARGIN * 2) /
-    (MAC_FRAME.padTop +
-      screenRatio +
-      MAC_FRAME.chin +
-      MAC_FRAME.neckHeight +
-      MAC_FRAME.baseHeight);
-
-  return Math.max(0, Math.min(widthLimit, heightLimit));
-}
-
-function fallbackMacWidth(screenRatio) {
-  if (typeof window === "undefined" || screenRatio <= 0) return 960;
-  // Dialog inset, toolbar, and stage padding — enough to size the monitor
-  // before the hidden viewer has reported its real dimensions.
-  return computeMacWidth(
-    window.innerWidth - 48,
-    window.innerHeight - 120,
-    screenRatio,
-  );
-}
-
 const ABOUT = {
-  title: "About Emily",
+  title: "Hi! I'm Emily Hope Louie",
   body: [
     "Emily is a product designer working on agentic UX: the layer of a product that decides how an AI plans, acts, recovers, and explains itself.",
     "Currently at Roblox, she designs the Studio Assistant experience used by millions of creators. Her work spans north-star vision, systems design, and working prototypes built at fidelity.",
@@ -60,64 +19,46 @@ const ABOUT = {
 };
 
 export default function Portfolio() {
+  const theme = useSystemTheme();
   const [project, setProject] = useState(null);
   const [activeProject, setActiveProject] = useState(PROJECTS[0]);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [zoom, setZoom] = useState(MIN_ZOOM);
   const [imageOffset, setImageOffset] = useState({ x: 0, y: 0 });
-  const [macWidth, setMacWidth] = useState(0);
-  const [embedMounted, setEmbedMounted] = useState(false);
-  const [embedLoaded, setEmbedLoaded] = useState(false);
   const dragRef = useRef(null);
   const imageTriggerRef = useRef(null);
   const viewerCloseRef = useRef(null);
   const stageRef = useRef(null);
   const panelOpen = Boolean(project || aboutOpen);
-  const previewFile = project?.previewFile || project?.file;
-  const prototype = project?.prototype;
-  const isEmbed = prototype?.kind === "site";
-  const screenRatio = isEmbed
-    ? prototype.viewport.height / prototype.viewport.width
-    : 0;
+  const projectFile = projectMedia(project, "file", theme);
+  const previewFile =
+    projectMedia(project, "previewFile", theme) || projectFile;
+  // The label over the still invites a closer look. A project can set it to an
+  // empty string to go without one, for a still that is a screenshot rather
+  // than something to try. It still opens full screen either way.
+  const previewHint = project?.previewHint ?? "View prototype";
+  // A project that ships a recording plays it in the panel rather than showing
+  // a still, and has nothing to open full screen: the walkthrough is the
+  // preview, and the link beside it goes to the real thing.
+  const detailVideo = projectMedia(project, "detailVideo", theme);
 
   const resetViewer = () => {
     setViewerOpen(false);
     setZoom(MIN_ZOOM);
     setImageOffset({ x: 0, y: 0 });
-    setMacWidth(0);
-    setEmbedMounted(false);
-    setEmbedLoaded(false);
   };
 
   const closeViewer = () => {
-    setViewerOpen(false);
-    setZoom(MIN_ZOOM);
-    setImageOffset({ x: 0, y: 0 });
+    resetViewer();
     requestAnimationFrame(() => imageTriggerRef.current?.focus());
   };
 
   const openViewer = () => {
     setZoom(MIN_ZOOM);
     setImageOffset({ x: 0, y: 0 });
-    if (isEmbed) {
-      setEmbedLoaded(false);
-      setEmbedMounted(true);
-    }
     setViewerOpen(true);
   };
-
-  const measureMac = useCallback(() => {
-    const stage = stageRef.current;
-    if (!stage || !isEmbed) return;
-
-    const next = computeMacWidth(
-      stage.clientWidth,
-      stage.clientHeight,
-      screenRatio,
-    );
-    if (next > 0) setMacWidth(next);
-  }, [isEmbed, screenRatio]);
 
   const changeZoom = (nextZoom) => {
     const clampedZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextZoom));
@@ -125,17 +66,11 @@ export default function Portfolio() {
     if (clampedZoom === MIN_ZOOM) setImageOffset({ x: 0, y: 0 });
   };
 
-  // Moving to another card must not leave the previous project's prototype
-  // running behind the closed viewer.
+  // Moving to another card must not leave the previous project's preview open
+  // behind the new panel.
   const openProject = (nextProject) => {
     resetViewer();
     setProject(nextProject);
-
-    if (nextProject?.prototype?.kind === "site") {
-      setEmbedLoaded(false);
-      setEmbedMounted(true);
-      setViewerOpen(true);
-    }
   };
 
   const closePanel = () => {
@@ -173,41 +108,11 @@ export default function Portfolio() {
     if (viewerOpen) viewerCloseRef.current?.focus();
   }, [viewerOpen]);
 
-  // The monitor is sized to the largest screen width that still leaves room for
-  // the bezel, chin, and stand inside the stage.
-  useEffect(() => {
-    if (!isEmbed) return;
-
-    measureMac();
-    const stage = stageRef.current;
-    if (!stage) return;
-
-    const observer = new ResizeObserver(measureMac);
-    observer.observe(stage);
-    return () => observer.disconnect();
-  }, [isEmbed, measureMac]);
-
-  // The viewer is visibility-hidden until it opens, so some browsers report a
-  // zero-sized stage until then. Measure again once it is actually on screen.
-  useEffect(() => {
-    if (!viewerOpen || !isEmbed) return;
-
-    measureMac();
-    const frame = requestAnimationFrame(() => {
-      requestAnimationFrame(measureMac);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [viewerOpen, isEmbed, measureMac]);
-
-  const baseMacWidth =
-    macWidth > 0 ? macWidth : fallbackMacWidth(screenRatio);
-  const displayMacWidth = baseMacWidth * zoom;
-
   // React attaches wheel listeners passively at the root, so the zoom gesture
   // needs its own listener to be allowed to cancel the page scroll.
   useEffect(() => {
     const stage = stageRef.current;
-    if (!viewerOpen || isEmbed || !stage) return;
+    if (!viewerOpen || !stage) return;
 
     const onWheel = (event) => {
       event.preventDefault();
@@ -218,7 +123,7 @@ export default function Portfolio() {
   });
 
   return (
-    <main className="portfolio-shell">
+    <main className="portfolio-shell" data-theme={theme}>
       <header className="site-nav">
         <button
           className="wordmark"
@@ -254,6 +159,7 @@ export default function Portfolio() {
       <Carousel
         onOpenProject={openProject}
         onActiveProject={setActiveProject}
+        theme={theme}
       />
 
       <div className="mobile-project-meta" aria-live="polite">
@@ -295,28 +201,58 @@ export default function Portfolio() {
 
           {project ? (
             <div className="project-detail">
-              <button
-                ref={imageTriggerRef}
-                className="detail-image"
-                type="button"
-                onClick={openViewer}
-                aria-label={
-                  isEmbed
-                    ? `Launch the live ${project.fullName || project.name} prototype`
-                    : `Open full-screen prototype preview for ${project.fullName || project.name}`
-                }
-              >
-                {/* The carousel uses the same source in its atlas. */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`/${project.file}`}
-                  alt={`Prototype preview for ${project.fullName || project.name}`}
-                />
-                <span className="detail-image-hint" aria-hidden="true">
-                  <span>{isEmbed ? "Launch live prototype" : "View prototype"}</span>
-                  <span>↗</span>
-                </span>
-              </button>
+              {detailVideo ? (
+                <div className="detail-image is-video">
+                  <video
+                    key={detailVideo}
+                    src={`/${detailVideo}`}
+                    poster={projectFile ? `/${projectFile}` : undefined}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                    aria-label={`Recorded walkthrough of ${project.fullName || project.name}`}
+                  />
+                </div>
+              ) : !previewFile ? (
+                /* No cover for this one yet. A blank box rather than a stand-in
+                   image, and not a button: there is nothing to open. */
+                <div className="detail-image is-blank" />
+              ) : (
+                <button
+                  ref={imageTriggerRef}
+                  className={`detail-image${project.previewAspect ? " is-shaped" : ""}${
+                    previewHint ? "" : " is-plain"
+                  }`}
+                  style={
+                    project.previewAspect
+                      ? { "--preview-aspect": project.previewAspect }
+                      : undefined
+                  }
+                  type="button"
+                  onClick={openViewer}
+                  aria-label={`Open full-screen prototype preview for ${project.fullName || project.name}`}
+                >
+                  {/* Usually the same source the carousel has in its atlas, but a
+                      project can point the panel somewhere else: the card is small
+                      enough to hide detail that reads plainly at panel size. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/${previewFile}`}
+                    alt={
+                      project.previewAlt ||
+                      `Prototype preview for ${project.fullName || project.name}`
+                    }
+                  />
+                  {previewHint ? (
+                    <span className="detail-image-hint" aria-hidden="true">
+                      <span>{previewHint}</span>
+                      <span>↗</span>
+                    </span>
+                  ) : null}
+                </button>
+              )}
               <div className="detail-copy">
                 <p className="detail-kicker">
                   {project.type} · {project.year}
@@ -348,20 +284,26 @@ export default function Portfolio() {
             </div>
           ) : (
             <div className="about-detail">
-              <p className="detail-kicker">About</p>
-              <h1>{ABOUT.title}</h1>
-              {ABOUT.body.map((paragraph) => (
-                <p key={paragraph}>{paragraph}</p>
-              ))}
-              <div className="about-links">
-                <a href="mailto:emilyhlouie@gmail.com">Email ↗</a>
-                <a
-                  href="https://www.linkedin.com/in/emilyhlouie/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  LinkedIn ↗
-                </a>
+              <figure className="about-photo">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/emily.jpg" alt="Emily Hope" />
+              </figure>
+              <div className="about-copy">
+                <p className="detail-kicker">About</p>
+                <h1>{ABOUT.title}</h1>
+                {ABOUT.body.map((paragraph) => (
+                  <p key={paragraph}>{paragraph}</p>
+                ))}
+                <div className="about-links">
+                  <a href="mailto:emilyhlouie@gmail.com">Email ↗</a>
+                  <a
+                    href="https://www.linkedin.com/in/emilyhlouie/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    LinkedIn ↗
+                  </a>
+                </div>
               </div>
             </div>
           )}
@@ -416,17 +358,6 @@ export default function Portfolio() {
               >
                 +
               </button>
-              {isEmbed ? (
-                <a
-                  className="image-viewer-open"
-                  href={prototype.src}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  tabIndex={viewerOpen ? 0 : -1}
-                >
-                  Open ↗
-                </a>
-              ) : null}
               <button
                 ref={viewerCloseRef}
                 className="image-viewer-close"
@@ -443,95 +374,37 @@ export default function Portfolio() {
           </div>
           <div
             ref={stageRef}
-            className={`image-viewer-stage ${isEmbed ? "is-embed" : ""} ${
-              !isEmbed && zoom > MIN_ZOOM ? "is-zoomed" : ""
+            className={`image-viewer-stage ${
+              zoom > MIN_ZOOM ? "is-zoomed" : ""
             }`}
-            onPointerDown={
-              isEmbed
-                ? undefined
-                : (event) => {
-                    if (zoom === MIN_ZOOM) return;
-                    event.currentTarget.setPointerCapture(event.pointerId);
-                    dragRef.current = {
-                      pointerId: event.pointerId,
-                      x: event.clientX,
-                      y: event.clientY,
-                      originX: imageOffset.x,
-                      originY: imageOffset.y,
-                    };
-                  }
-            }
-            onPointerMove={
-              isEmbed
-                ? undefined
-                : (event) => {
-                    if (dragRef.current?.pointerId !== event.pointerId) return;
-                    setImageOffset({
-                      x:
-                        dragRef.current.originX +
-                        event.clientX -
-                        dragRef.current.x,
-                      y:
-                        dragRef.current.originY +
-                        event.clientY -
-                        dragRef.current.y,
-                    });
-                  }
-            }
-            onPointerUp={
-              isEmbed
-                ? undefined
-                : (event) => {
-                    if (dragRef.current?.pointerId !== event.pointerId) return;
-                    dragRef.current = null;
-                    event.currentTarget.releasePointerCapture(event.pointerId);
-                  }
-            }
-            onPointerCancel={
-              isEmbed
-                ? undefined
-                : () => {
-                    dragRef.current = null;
-                  }
-            }
+            onPointerDown={(event) => {
+              if (zoom === MIN_ZOOM) return;
+              event.currentTarget.setPointerCapture(event.pointerId);
+              dragRef.current = {
+                pointerId: event.pointerId,
+                x: event.clientX,
+                y: event.clientY,
+                originX: imageOffset.x,
+                originY: imageOffset.y,
+              };
+            }}
+            onPointerMove={(event) => {
+              if (dragRef.current?.pointerId !== event.pointerId) return;
+              setImageOffset({
+                x: dragRef.current.originX + event.clientX - dragRef.current.x,
+                y: dragRef.current.originY + event.clientY - dragRef.current.y,
+              });
+            }}
+            onPointerUp={(event) => {
+              if (dragRef.current?.pointerId !== event.pointerId) return;
+              dragRef.current = null;
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }}
+            onPointerCancel={() => {
+              dragRef.current = null;
+            }}
           >
-            {isEmbed && viewerOpen ? (
-              // Zoom grows the whole monitor and lets the stage scroll. Scaling
-              // inside the screen instead would strand the viewer: a
-              // cross-origin iframe keeps the wheel events that would pan it.
-              <div
-                className="mac-display"
-                style={{
-                  "--mac-w": `${displayMacWidth}px`,
-                  "--mac-h": `${displayMacWidth * screenRatio}px`,
-                  "--mac-scale": displayMacWidth / prototype.viewport.width,
-                }}
-              >
-                <div className="mac-display-bezel">
-                  <span className="mac-display-camera" aria-hidden="true" />
-                  <div className="mac-display-screen">
-                    {embedMounted ? (
-                      <iframe
-                        className="mac-display-frame"
-                        src={prototype.src}
-                        title={`${project.fullName || project.name} — live prototype`}
-                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                        onLoad={() => setEmbedLoaded(true)}
-                        style={{
-                          width: `${prototype.viewport.width}px`,
-                          height: `${prototype.viewport.height}px`,
-                        }}
-                      />
-                    ) : null}
-                    {embedLoaded ? null : (
-                      <p className="mac-display-loading">Waking the desk…</p>
-                    )}
-                  </div>
-                </div>
-                <span className="mac-display-neck" aria-hidden="true" />
-                <span className="mac-display-base" aria-hidden="true" />
-              </div>
-            ) : project ? (
+            {project && previewFile ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 className="image-viewer-image"

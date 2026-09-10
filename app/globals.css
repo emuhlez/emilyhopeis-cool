@@ -2,12 +2,55 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f4f2ed;
+  color-scheme: light;
+  /* Neutral rather than warm. Held at the old lightness so the surface steps
+     below it, and the separation measured against the white media plate, both
+     still hold: only the yellow comes out. */
+  --bg: #f4f4f2;
   --ink: #11110f;
-  --muted: #696861;
+  --muted: #6a6a66;
   --line: rgba(17, 17, 15, 0.16);
+  --hover: rgba(17, 17, 15, 0.08);
+  --overlay-scrim: rgba(17, 17, 15, 0.3);
+  /* Media sits on its own surface, a step above the panel. White, because both
+     devices in the artwork are silver here: measured against a warm plate the
+     iMac bezel fell to 1.14 : 1, and against white it separates cleanly. Baked
+     into the card art and the recordings too, so the CSS box behind a video and
+     the pixels inside it are the same surface. */
+  --media-plate: #fff;
+  --viewer-bg: #f4f4f2;
+  --viewer-ink: #11110f;
+  --viewer-line: rgba(17, 17, 15, 0.18);
+  --viewer-control: rgba(17, 17, 15, 0.08);
+  --viewer-control-hover: rgba(17, 17, 15, 0.14);
+  /* Stands in for a cover that does not exist yet, on the ring card and in the
+     detail panel alike. The atlas reads this property so the two agree. Kept a
+     step below the media plate so a blank card and a card with art on it are
+     not the same surface. */
+  --card-blank: #d6d6d2;
   --sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #11110f;
+    --ink: #f4f2ed;
+    --muted: #aaa8a1;
+    --line: rgba(244, 242, 237, 0.18);
+    --hover: rgba(244, 242, 237, 0.1);
+    --overlay-scrim: rgba(0, 0, 0, 0.52);
+    /* Lighter than the page, not darker: the devices go black in this theme, so
+       the plate has to rise away from them rather than sink into them. */
+    --media-plate: #24231e;
+    --card-blank: #34332c;
+    --viewer-bg: #11110f;
+    --viewer-ink: #f4f2ed;
+    --viewer-line: rgba(244, 242, 237, 0.2);
+    --viewer-control: rgba(244, 242, 237, 0.08);
+    --viewer-control-hover: rgba(244, 242, 237, 0.14);
+  }
 }
 
 * {
@@ -104,7 +147,7 @@ button {
 
 .site-nav nav button:hover,
 .site-nav nav a:hover {
-  background: rgba(17, 17, 15, 0.08);
+  background: var(--hover);
 }
 
 /* The column reports the ring: the front card's name is lit and the rest are
@@ -157,7 +200,7 @@ button {
   inset: 0;
   width: 100%;
   border: 0;
-  background: rgba(17, 17, 15, 0.3);
+  background: var(--overlay-scrim);
   opacity: 0;
   cursor: pointer;
   backdrop-filter: blur(5px);
@@ -227,15 +270,22 @@ button {
   stroke-linecap: round;
 }
 
+/* The media leads and the copy reads underneath it. Stacked rather than
+   side by side because the column split capped the media at a little over half
+   the panel width, which is what was holding the recording small. */
 .project-detail {
   height: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+  grid-template-columns: minmax(0, 1fr);
   /* minmax(0, 1fr) rather than auto: the row has to be allowed to shrink
      below its content, or the image floors the panel and forces a scroll. */
-  grid-template-rows: minmax(0, 1fr);
-  gap: clamp(28px, 5vw, 80px);
-  padding: clamp(56px, 5vw, 96px);
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: clamp(12px, 1.6vh, 20px);
+  /* The media is centred and narrower than the content box, so it clears the
+     close button on the right without needing to start below it. 32px is the
+     floor because less than that reads as a bleed rather than a margin. */
+  padding: clamp(32px, 2.6vw, 52px) clamp(56px, 5vw, 96px)
+    clamp(22px, 2.2vh, 34px);
 }
 
 .detail-image {
@@ -248,10 +298,20 @@ button {
   padding: 0;
   overflow: hidden;
   border-radius: 18px;
-  background: #dfddd7;
+  background: var(--card-blank);
   color: white;
   cursor: zoom-in;
   text-align: left;
+}
+
+/* A project with no cover yet: the box is all there is, so it keeps the fill and
+   drops everything that implies something to click. */
+.detail-image.is-blank {
+  cursor: default;
+}
+
+.detail-image.is-blank::after {
+  content: none;
 }
 
 .detail-image img {
@@ -260,6 +320,47 @@ button {
   display: block;
   object-fit: cover;
   transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Shaped to the media rather than to the cell. The row is wider than it is tall,
+   so a box that takes the whole of it crops anything the media cannot spare:
+   a recording of a monitor loses its bezel and stand, a screenshot of a phone
+   loses the header and the composer at both ends. Whichever of width or height
+   runs out first caps it, so it is centred on both axes.
+
+   Recordings are 3:2. A still says its own ratio through --preview-aspect,
+   since the box has no way to read the file. */
+.detail-image.is-video,
+.detail-image.is-shaped {
+  aspect-ratio: var(--preview-aspect, 3 / 2);
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  place-self: center;
+}
+
+/* A project that ships a recording plays it where the still would sit. There is
+   nothing to open full screen from here, so this one is a plain box rather than
+   a button and drops the zoom cursor the still carries. */
+.detail-image.is-video {
+  background: var(--media-plate);
+  cursor: default;
+}
+
+.detail-image video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The scrim below only exists to hold the hint legible. A recording has no hint,
+   and neither does a still that goes without one, so it would only darken a
+   corner of the shot for nothing. */
+.detail-image.is-video::after,
+.detail-image.is-plain::after {
+  content: none;
 }
 
 .detail-image::after {
@@ -305,9 +406,16 @@ button {
   transition: opacity 220ms ease;
 }
 
+/* Centred on the same axis as the media above it. The media is centred because
+   it is capped by whichever of width or height runs out first, so left-aligning
+   the copy would only line the two up at some window sizes and not others. */
 .detail-copy {
-  max-width: 620px;
-  align-self: center;
+  /* A wider measure than the reading ideal on purpose: the description is the
+     one part of the copy that wraps, and every line it loses is a line the
+     recording above it gains. */
+  max-width: 720px;
+  align-self: start;
+  justify-self: center;
   min-height: 0;
 }
 
@@ -323,7 +431,7 @@ button {
 /* Height is in the clamp as well as width: on a short landscape window the
    type is what overflows first, and vw alone cannot see that. */
 .detail-copy h1,
-.about-detail h1 {
+.about-copy h1 {
   margin: 0;
   font-family: var(--mono);
   font-size: clamp(26px, min(4.5vw, 7.5vh), 58px);
@@ -333,22 +441,24 @@ button {
 }
 
 .detail-description,
-.about-detail > p:not(.detail-kicker) {
-  margin: clamp(16px, 3vh, 30px) 0 0;
+.about-copy > p:not(.detail-kicker) {
+  margin: clamp(12px, 2vh, 22px) 0 0;
   color: var(--muted);
   font-size: clamp(15px, min(1.35vw, 2.2vh), 20px);
   line-height: 1.6;
 }
 
+/* Tighter than it looks like it wants to be: stacked, every pixel the copy
+   takes vertically comes straight off the media above it. */
 .detail-copy dl {
-  margin: clamp(20px, 4vh, 42px) 0;
+  margin: clamp(10px, 1.5vh, 18px) 0;
   border-top: 1px solid var(--line);
 }
 
 .detail-copy dl div {
   display: grid;
   grid-template-columns: 90px 1fr;
-  padding: clamp(8px, 1.4vh, 14px) 0;
+  padding: clamp(4px, 0.7vh, 9px) 0;
   border-bottom: 1px solid var(--line);
   font-size: 13px;
 }
@@ -375,12 +485,38 @@ button {
 
 .about-detail {
   height: 100%;
-  max-width: 880px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: clamp(64px, 6vw, 96px) clamp(30px, 8vw, 110px);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  padding: clamp(56px, 5vw, 88px) clamp(28px, 5vw, 88px);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: clamp(28px, 5vw, 72px);
+  align-items: center;
+}
+
+/* Sized from its width so the 2:3 ratio actually holds. Pinning the height to
+   the panel made the ratio moot, and max-width then squeezed the result into a
+   420x1082 slot that cropped Emily down to a strip. */
+.about-photo {
+  margin: 0;
+  aspect-ratio: 2 / 3;
+  width: clamp(240px, 32vw, 420px);
+  max-height: 100%;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #dfddd7;
+}
+
+.about-photo img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: 48% 16%;
+}
+
+.about-copy {
+  min-width: 0;
 }
 
 .about-links {
@@ -429,10 +565,10 @@ body[data-overlay-open="true"] canvas {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--viewer-line);
   border-radius: 22px;
-  background: #11110f;
-  color: white;
+  background: var(--viewer-bg);
+  color: var(--viewer-ink);
   opacity: 0;
   transform: scale(0.98);
   transition:
@@ -454,7 +590,7 @@ body[data-overlay-open="true"] canvas {
   gap: 20px;
   min-height: 64px;
   padding: 10px 12px 10px 22px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: 1px solid var(--viewer-line);
   font-family: var(--mono);
   font-size: 11px;
   letter-spacing: 0.06em;
@@ -480,22 +616,22 @@ body[data-overlay-open="true"] canvas {
   min-width: 38px;
   height: 38px;
   appearance: none;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--viewer-line);
   border-radius: 999px;
   padding: 0 10px;
-  background: rgba(255, 255, 255, 0.08);
-  color: white;
+  background: var(--viewer-control);
+  color: var(--viewer-ink);
   cursor: pointer;
 }
 
 .image-viewer-controls button:hover:not(:disabled),
 .image-viewer-controls button:focus-visible {
-  border-color: rgba(255, 255, 255, 0.56);
-  background: rgba(255, 255, 255, 0.14);
+  border-color: color-mix(in srgb, var(--viewer-ink) 56%, transparent);
+  background: var(--viewer-control-hover);
 }
 
 .image-viewer-controls button:focus-visible {
-  outline: 1px solid white;
+  outline: 1px solid var(--viewer-ink);
   outline-offset: 2px;
 }
 
@@ -508,28 +644,6 @@ body[data-overlay-open="true"] canvas {
   min-width: 64px;
   font-family: var(--mono);
   font-size: 10px;
-}
-
-.image-viewer-open {
-  display: grid;
-  place-items: center;
-  height: 38px;
-  padding: 0 14px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: white;
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.image-viewer-open:hover,
-.image-viewer-open:focus-visible {
-  border-color: rgba(255, 255, 255, 0.56);
-  background: rgba(255, 255, 255, 0.14);
 }
 
 .image-viewer-controls .image-viewer-close {
@@ -577,109 +691,6 @@ body[data-overlay-open="true"] canvas {
   transition: none;
 }
 
-/* The monitor is a live prototype in a case, not a picture of one: every part
-   below is a fraction of --mac-w, the screen width measured against the stage,
-   so the whole display stays in proportion at any size. */
-/* `safe` keeps the top-left of the monitor reachable once zoom pushes it past
-   the stage; plain centring would scroll it out of reach. */
-.image-viewer-stage.is-embed {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  overflow: auto;
-  user-select: auto;
-}
-
-.mac-display {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  align-items: center;
-}
-
-.mac-display-bezel {
-  position: relative;
-  padding: calc(var(--mac-w) * 0.03) calc(var(--mac-w) * 0.025);
-  padding-bottom: calc(var(--mac-w) * 0.115);
-  border-radius: calc(var(--mac-w) * 0.018);
-  /* The chin is the tail of this gradient, so it reads a shade heavier than
-     the bezels the way the aluminium does. */
-  background: linear-gradient(180deg, #f4f5f6 0%, #e7e9eb 62%, #d2d5d9 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    inset 0 0 0 1px rgba(0, 0, 0, 0.08),
-    0 50px 90px -34px rgba(0, 0, 0, 0.8);
-}
-
-.mac-display-camera {
-  position: absolute;
-  top: calc(var(--mac-w) * 0.015);
-  left: 50%;
-  width: calc(var(--mac-w) * 0.0045);
-  height: calc(var(--mac-w) * 0.0045);
-  border-radius: 999px;
-  background: #2b2c2f;
-  transform: translate(-50%, -50%);
-}
-
-.mac-display-screen {
-  position: relative;
-  width: var(--mac-w);
-  height: var(--mac-h);
-  overflow: hidden;
-  border-radius: calc(var(--mac-w) * 0.004);
-  background: #000;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.55);
-}
-
-/* Laid out at its own logical viewport and scaled to the glass, so the
-   prototype renders its desktop layout no matter how big the monitor is drawn
-   and zoom magnifies the real render rather than resampling a bitmap. */
-.mac-display-frame {
-  display: block;
-  border: 0;
-  transform: scale(var(--mac-scale));
-  transform-origin: top left;
-}
-
-.mac-display-loading {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  margin: 0;
-  color: rgba(255, 255, 255, 0.5);
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-/* The 24-inch stand is a flat rectangular slab rather than the tapered neck of
-   a Studio Display. */
-.mac-display-neck {
-  width: calc(var(--mac-w) * 0.237);
-  height: calc(var(--mac-w) * 0.153);
-  border-radius: 0 0 calc(var(--mac-w) * 0.004) calc(var(--mac-w) * 0.004);
-  background: linear-gradient(
-    90deg,
-    #aeb1b6 0%,
-    #e3e5e8 18%,
-    #f3f4f5 46%,
-    #d5d8dc 74%,
-    #a5a8ad 100%
-  );
-}
-
-.mac-display-base {
-  width: calc(var(--mac-w) * 0.312);
-  height: calc(var(--mac-w) * 0.017);
-  border-radius: calc(var(--mac-w) * 0.008);
-  background: linear-gradient(180deg, #e8eaec 0%, #c6c9cd 52%, #9a9da2 100%);
-  box-shadow: 0 26px 40px -22px rgba(0, 0, 0, 0.7);
-}
-
 @media (max-width: 760px) {
   .site-nav {
     padding: 16px;
@@ -724,8 +735,6 @@ body[data-overlay-open="true"] canvas {
   }
 
   .project-detail {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
     gap: 22px;
     padding: 68px 20px 28px;
   }
@@ -749,12 +758,23 @@ body[data-overlay-open="true"] canvas {
   }
 
   .detail-copy h1,
-  .about-detail h1 {
+  .about-copy h1 {
     font-size: clamp(26px, min(9vw, 5.5vh), 42px);
   }
 
   .about-detail {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(160px, 34vh) auto;
+    align-items: start;
     padding: 72px 24px 32px;
+    gap: 22px;
+  }
+
+  .about-photo {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    aspect-ratio: auto;
   }
 
   .image-viewer-dialog {

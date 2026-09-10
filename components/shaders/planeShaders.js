@@ -59,6 +59,14 @@ export const fragmentShader = /* glsl */ `
   uniform float uBlend;        // px over which neighbouring art crossfades
   uniform float uTextured;
 
+  // One cell may be a video instead of a still. It cannot live in the atlas:
+  // repainting a cell per frame would re-upload the whole sheet and rebuild its
+  // mips for four cards nobody is looking at. So it rides in its own sampler
+  // and the tap below chooses between the two.
+  uniform sampler2D uVideo;
+  uniform float uVideoCell;    // which cell it stands in for; < 0 is none
+  uniform float uVideoIn;      // 0..1 fade from the still to the first frame
+
   // --- pointer -------------------------------------------------------------
   // Nothing is ever drawn at the cursor. It only changes how the ring behaves
   // around it: the field goes soft, and a wake runs out through the surface.
@@ -80,6 +88,25 @@ export const fragmentShader = /* glsl */ `
     float col = mod(idx, uGrid.x);
     float row = floor(idx / uGrid.x);
     return (vec2(col, row) + uv) / uGrid;
+  }
+
+  /**
+   * The art for one cell. Both textures are read whenever a video is present
+   * and selected between with a mix rather than an if: which cell a pixel
+   * belongs to varies across the quad, and sampling inside that kind of branch
+   * leaves the implicit derivative undefined, which is a torn mip level along
+   * every edge where two cards meet. The outer test is on a uniform, so it
+   * costs the second tap only on pages that actually have a video.
+   */
+  vec3 artTap(vec2 uv, float idx) {
+    vec3 still = texture2D(uAtlas, atlasUV(uv, idx)).rgb;
+    if (uVideoCell < 0.0) return still;
+
+    // The video cut is composed at the plane's own aspect, so uv maps straight
+    // onto it with no letterbox or crop correction.
+    vec3 moving = texture2D(uVideo, uv).rgb;
+    float isVideo = step(abs(idx - uVideoCell), 0.5) * uVideoIn;
+    return mix(still, moving, isVideo);
   }
 
 
@@ -369,18 +396,18 @@ export const fragmentShader = /* glsl */ `
       if (uFringe > 0.0) {
         vec2 fr = vec2(uFringe * bend / max(uSize.x, 1.0), 0.0);
         c0 = vec3(
-          texture2D(uAtlas, atlasUV(uv0 + fr, im0)).r,
-          texture2D(uAtlas, atlasUV(uv0, im0)).g,
-          texture2D(uAtlas, atlasUV(uv0 - fr, im0)).b
+          artTap(uv0 + fr, im0).r,
+          artTap(uv0, im0).g,
+          artTap(uv0 - fr, im0).b
         );
         c1 = vec3(
-          texture2D(uAtlas, atlasUV(uv1 + fr, im1)).r,
-          texture2D(uAtlas, atlasUV(uv1, im1)).g,
-          texture2D(uAtlas, atlasUV(uv1 - fr, im1)).b
+          artTap(uv1 + fr, im1).r,
+          artTap(uv1, im1).g,
+          artTap(uv1 - fr, im1).b
         );
       } else {
-        c0 = texture2D(uAtlas, atlasUV(uv0, im0)).rgb;
-        c1 = texture2D(uAtlas, atlasUV(uv1, im1)).rgb;
+        c0 = artTap(uv0, im0);
+        c1 = artTap(uv1, im1);
       }
 
       col = mix(c1, c0, nearest);

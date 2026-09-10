@@ -11,12 +11,13 @@ import {
   MAX_LINKS,
 } from "./shaders/planeShaders";
 import { buildAtlas } from "./ring/atlas";
+import { createCardVideo } from "./ring/cardVideo";
 import { createMeta } from "./ring/meta";
 import { createSplitText } from "./ring/splitText";
 import { createTag, TAG_W, TAG_H } from "./ring/tag";
 import { createProxies } from "./ring/proxies";
 import { defaultParams } from "./ring/params";
-import { IMAGE_FILES, PROJECTS } from "./ring/projects";
+import { imageFilesFor, PROJECTS } from "./ring/projects";
 import {
   TAU,
   HALF_PI,
@@ -38,7 +39,7 @@ const blankTexture = () => {
   return t;
 };
 
-export default function Carousel({ onOpenProject, onActiveProject }) {
+export default function Carousel({ onOpenProject, onActiveProject, theme }) {
   const containerRef = useRef(null);
   const onOpenProjectRef = useRef(onOpenProject);
   const onActiveProjectRef = useRef(onActiveProject);
@@ -72,6 +73,10 @@ export default function Carousel({ onOpenProject, onActiveProject }) {
     let disposed = false;
 
     const params = defaultParams();
+    const rootStyle = getComputedStyle(document.documentElement);
+    const ink = rootStyle.getPropertyValue("--ink").trim() || "#0a0a0a";
+    const page = rootStyle.getPropertyValue("--bg").trim() || "#fafafa";
+    params.textColor = ink;
     const reducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -152,11 +157,14 @@ export default function Carousel({ onOpenProject, onActiveProject }) {
       uK: { value: params.goo },
       uWobble: { value: params.wobble },
       uTime: { value: 0 },
-      uColor: { value: new THREE.Color("#0a0a0a") },
+      uColor: { value: new THREE.Color(ink) },
       uAtlas: { value: blankTexture() }, // placeholder so the sampler is bound
       uGrid: { value: new THREE.Vector2(1, 1) },
       uBlend: { value: params.blend },
       uTextured: { value: 0 },
+      uVideo: { value: blankTexture() }, // as above; unread while uVideoCell < 0
+      uVideoCell: { value: -1 },
+      uVideoIn: { value: 0 },
       uBandTop: { value: 0 },
       uBandBottom: { value: 0 },
       uGlass: { value: new THREE.Vector4() },
@@ -170,7 +178,7 @@ export default function Carousel({ onOpenProject, onActiveProject }) {
       uTag: { value: new THREE.Vector4() },
       uTagP: { value: new THREE.Vector4() },
       uTagQ: { value: new THREE.Vector4() },
-      uPage: { value: new THREE.Color("#fafafa") },
+      uPage: { value: new THREE.Color(page) },
     };
 
     const mesh = new THREE.Mesh(
@@ -216,7 +224,7 @@ export default function Carousel({ onOpenProject, onActiveProject }) {
     const readyWaiters = [];
     const whenReady = (fn) => (launchReady ? fn() : readyWaiters.push(fn));
 
-    const atlas = buildAtlas(IMAGE_FILES, (p) => {
+    const atlas = buildAtlas(imageFilesFor(theme), (p) => {
       if (!disposed) loadProg = p;
     });
 
@@ -234,6 +242,15 @@ export default function Carousel({ onOpenProject, onActiveProject }) {
     atlas.ready.then(() => {
       if (!disposed) loadProg = 1;
     });
+
+    // One card may play footage over its cell. Bound here but contributing
+    // nothing until it has decoded a frame, so it cannot hold up the entry or
+    // punch a hole in the ring if it never plays at all.
+    const cardVideo = createCardVideo(theme);
+    if (cardVideo.texture) {
+      uniforms.uVideo.value.dispose();
+      uniforms.uVideo.value = cardVideo.texture;
+    }
 
     /* --------------------------------------------------------------- size */
     let viewW = 1;
@@ -981,9 +998,12 @@ export default function Carousel({ onOpenProject, onActiveProject }) {
         }
 
         // Same box again, in page coordinates this time, so the document has
-        // something the shape of a card where the card appears to be.
+        // something the shape of a card where the card appears to be. `cell`
+        // rides along because a plane does not wear its own index: the stand-in
+        // has to name whichever project's art the deal put on it.
         proxies.card(
           i,
+          cell,
           viewW * 0.5 + px + leanX[i] + pushX,
           viewH * 0.5 - (py + leanY[i] + pushY),
           W * sx * sw,
@@ -1003,7 +1023,7 @@ export default function Carousel({ onOpenProject, onActiveProject }) {
         // Only bites if the panel has been asked for fewer planes than there
         // are projects; the extra stand-ins would otherwise stay where the
         // ring last had them.
-        proxies.card(i, 0, 0, 0, 0, 0);
+        proxies.card(i, -1, 0, 0, 0, 0, 0);
       }
 
       over = overI;
@@ -1457,6 +1477,13 @@ export default function Carousel({ onOpenProject, onActiveProject }) {
       updatePointer(dt);
       layout(dt);
 
+      // The one video texture follows the centred project. It fades fully back
+      // to the atlas before changing source, so a decoder switch can never put
+      // one project's frame on another project's card.
+      const videoFrame = cardVideo.update(dt, shown >= 0 ? shown : 0);
+      uniforms.uVideoCell.value = videoFrame.cell;
+      uniforms.uVideoIn.value = videoFrame.mix;
+
       // The name arrives with the card, not while one flicks past. A pick
       // drives spin by tween, so spinVel is zero throughout — without that
       // test the meta would morph as the ring passed the halfway mark.
@@ -1505,6 +1532,10 @@ export default function Carousel({ onOpenProject, onActiveProject }) {
 
       mesh.geometry.dispose();
       mesh.material.dispose();
+      // Owns its own texture; the placeholder is only still bound when there
+      // was no video to swap in for it.
+      cardVideo.dispose();
+      if (!cardVideo.texture) uniforms.uVideo.value?.dispose();
       uniforms.uAtlas.value?.dispose();
       uniforms.uTagTex.value?.dispose();
 
@@ -1517,7 +1548,7 @@ export default function Carousel({ onOpenProject, onActiveProject }) {
       renderer.forceContextLoss();
       renderer.domElement.remove();
     };
-  }, []);
+  }, [theme]);
 
   return (
     <>
@@ -1537,11 +1568,12 @@ export default function Carousel({ onOpenProject, onActiveProject }) {
         aria-label="Projects"
         style={{
           fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif',
+          color: "var(--ink)",
         }}
-        className="project-list pointer-events-none fixed right-[4vw] top-[10vh] z-10 flex flex-col items-start text-right leading-[1.4] tracking-[0.01em] text-[#0a0a0a] opacity-0 max-sm:hidden"
+        className="project-list pointer-events-none fixed right-[4vw] top-[10vh] z-10 flex flex-col items-start text-right leading-[1.4] tracking-[0.01em] opacity-0 max-sm:hidden"
       >
         {PROJECTS.map((p, i) => (
-          <li key={p.file}>
+          <li key={`${p.name}-${i}`}>
             <button
               type="button"
               ref={(el) => {
@@ -1587,7 +1619,8 @@ export default function Carousel({ onOpenProject, onActiveProject }) {
               metaRef.current[side].box = el;
             }}
             aria-hidden="true"
-            className="ring-meta pointer-events-none fixed top-1/2 z-10 -translate-y-1/2 tracking-[-0.01em] text-[#0a0a0a]"
+            className="ring-meta pointer-events-none fixed top-1/2 z-10 -translate-y-1/2 tracking-[-0.01em]"
+            style={{ color: "var(--ink)" }}
           >
             <span
               ref={(el) => {
@@ -1628,7 +1661,8 @@ export default function Carousel({ onOpenProject, onActiveProject }) {
       <div
         ref={loaderRef}
         aria-hidden="true"
-        className="pointer-events-none fixed left-1/2 z-10 -translate-x-1/2 tracking-[-0.01em] text-[#0a0a0a]"
+        className="pointer-events-none fixed left-1/2 z-10 -translate-x-1/2 tracking-[-0.01em]"
+        style={{ color: "var(--ink)" }}
       />
 
       <div ref={liveRef} aria-live="polite" className="sr-only" />

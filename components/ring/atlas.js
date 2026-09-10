@@ -1,9 +1,28 @@
 import * as THREE from "three";
-import { IMAGE_FILES } from "./projects";
+import { imageFilesFor } from "./projects";
 
 // Cell aspect matches the plane's 1.5 : 1 so nothing is distorted.
-const CELL_W = 512;
+//
+// The centred card scales with the window rather than sitting at a fixed size:
+// it rests near 730 CSS px at a 1440 wide viewport, so around 1460 device px at
+// 2x, and near 1400 CSS px at 2560. A 512 cell was close to a threefold upscale
+// at the middle of that range, which showed plainly on artwork carrying UI text.
+// 1024 keeps the sheet at 3072 x 1366 and is already more than the source art of
+// most cards can fill, so going wider would cost memory for nothing.
+const CELL_W = 1024;
 const CELL_H = Math.round(CELL_W / 1.5);
+
+// Cards without a cover are painted this instead, and it also underlies every
+// cell so a slow or missing file shows the same blank rather than transparency,
+// which the shader would otherwise punch through to the background. Read from
+// the stylesheet so the ring and the detail panel cannot drift apart.
+const blankFill = () => {
+  const declared =
+    typeof getComputedStyle === "function"
+      ? getComputedStyle(document.documentElement).getPropertyValue("--card-blank").trim()
+      : "";
+  return declared || "#dfddd7";
+};
 
 const load = (src, priority) =>
   new Promise((resolve, reject) => {
@@ -25,10 +44,10 @@ const load = (src, priority) =>
  * while the rest are still coming.
  *
  * `first` settles once cell 0 is on the texture, `ready` once all of them are.
- * Neither rejects — a missing file leaves its cell blank and still counts as
- * settled, so one bad path cannot strand the entry.
+ * Neither rejects — a missing file leaves its cell on the blank fill and still
+ * counts as settled, so one bad path cannot strand the entry.
  */
-export function buildAtlas(files = IMAGE_FILES, onProgress) {
+export function buildAtlas(files = imageFilesFor("light"), onProgress) {
   const cols = Math.ceil(Math.sqrt(files.length));
   const rows = Math.ceil(files.length / cols);
 
@@ -36,6 +55,8 @@ export function buildAtlas(files = IMAGE_FILES, onProgress) {
   canvas.width = cols * CELL_W;
   canvas.height = rows * CELL_H;
   const ctx = canvas.getContext("2d");
+  ctx.fillStyle = blankFill();
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   const texture = new THREE.CanvasTexture(canvas);
   // The shader flips each cell itself, so leave the sheet as drawn.
@@ -70,14 +91,23 @@ export function buildAtlas(files = IMAGE_FILES, onProgress) {
   let settled = 0;
   const tick = () => onProgress?.(settled / files.length);
 
-  const fetchInto = (i, priority) =>
-    load(`/${files[i]}`, priority)
+  const done = () => {
+    settled++;
+    tick();
+  };
+
+  // A card without a cover has nothing to fetch: its cell is already the blank
+  // fill, and it settles straight away so it cannot hold up the entry.
+  const fetchInto = (i, priority) => {
+    if (!files[i]) {
+      done();
+      return Promise.resolve();
+    }
+    return load(`/${files[i]}`, priority)
       .then((img) => paint(img, i))
       .catch((err) => console.warn("[atlas]", err.message))
-      .finally(() => {
-        settled++;
-        tick();
-      });
+      .finally(done);
+  };
 
   // Cell 0 is the seed's art, the only thing on screen during the hold, so it
   // is asked for ahead of the rest and uploaded the moment it lands.

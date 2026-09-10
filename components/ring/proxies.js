@@ -19,6 +19,12 @@
  * the heading is the wordmark again — naming them here would say each of those
  * things twice. Identity rides on data- attributes instead, which is what a
  * picker reads anyway.
+ *
+ * A card's identity is not its plane number. Planes are numbered in fan order
+ * and the ring deals art to them by ring slot, so plane 1 does not wear
+ * PROJECTS[1], and imageOffset can rotate the whole deal. The attributes are
+ * written from the layout loop, which knows the deal, rather than fixed at
+ * creation, which would name every card after the wrong project.
  */
 
 // A 1x1 box moved entirely by transform. Size and angle ride on the
@@ -58,14 +64,21 @@ function place(el, x, y, w, h, rot) {
 }
 
 export function createProxies(container, projects, text) {
-  const cards = projects.map((project, i) =>
-    makeNode(container, "ring-card", {
-      card: String(i),
-      cardName: project.name,
-      cardType: project.type,
-      cardYear: project.year,
-    }),
-  );
+  const cards = projects.map(() => makeNode(container, "ring-card", {}));
+
+  // Which project this plane is carrying. cell < 0 is a plane the ring is not
+  // using, and it is left claiming nothing rather than holding the last project
+  // it happened to show. Guarded on the index so a plane that has not changed
+  // hands costs one string compare instead of four attribute writes a frame.
+  const identify = (el, cell) => {
+    const at = cell >= 0 ? String(cell) : "";
+    if (el.dataset.card === at) return;
+    const project = cell >= 0 ? projects[cell] : undefined;
+    el.dataset.card = at;
+    el.dataset.cardName = project?.name ?? "";
+    el.dataset.cardType = project?.type ?? "";
+    el.dataset.cardYear = project?.year ?? "";
+  };
 
   const headingEl = makeNode(container, "ring-heading", { text });
 
@@ -78,9 +91,11 @@ export function createProxies(container, projects, text) {
   const nodes = [...cards, headingEl, tagEl];
 
   return {
-    card(i, x, y, w, h, rot) {
+    card(i, cell, x, y, w, h, rot) {
       const el = cards[i];
-      if (el) place(el, x, y, w, h, rot);
+      if (!el) return;
+      identify(el, cell);
+      place(el, x, y, w, h, rot);
     },
 
     heading(x, y, w, h) {
