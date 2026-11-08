@@ -745,14 +745,20 @@ a.tl-row:focus-visible .tl-arrow {
   padding: 0;
 }
 
-.folio-intro {
-  padding: 7rem 0 6rem;
-  max-width: 50rem;
+.work {
+  padding-top: 2.5rem;
+  scroll-margin-top: 5rem;
+}
+
+.folio-about {
+  margin-top: 8rem;
+  max-width: 44rem;
+  scroll-margin-top: 6rem;
 }
 
 .folio-headline {
-  margin: 0 0 1.75rem;
-  font-size: clamp(2rem, 4.4vw, 3.25rem);
+  margin: 0 0 1.25rem;
+  font-size: clamp(1.625rem, 3vw, 2.25rem);
   font-weight: 500;
   line-height: 1.1;
   letter-spacing: -0.035em;
@@ -868,7 +874,7 @@ a.work-card:hover .work-arrow { transform: translate(2px, -1px); }
 
 /* ---------- footer ---------- */
 .folio-footer {
-  margin-top: 9rem;
+  margin-top: 6rem;
   padding-top: 2.5rem;
   border-top: 1px solid var(--border);
   display: flex;
@@ -911,10 +917,12 @@ a.work-card:hover .work-arrow { transform: translate(2px, -1px); }
 @media (max-width: 760px) {
   .folio-page { padding: 0 1.25rem 2.5rem; }
   .folio-nav { gap: 1.1rem; }
-  .folio-nav a[href="#work"] { display: none; }
-  .folio-intro { padding: 4rem 0 4rem; }
+  .folio-nav a[href="#work"],
+  .folio-nav a[href="#about"] { display: none; }
+  .work { padding-top: 1.5rem; }
+  .folio-about { margin-top: 5rem; }
   .work-grid { grid-template-columns: 1fr; gap: 3rem; }
-  .folio-footer { margin-top: 6rem; }
+  .folio-footer { margin-top: 4rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
