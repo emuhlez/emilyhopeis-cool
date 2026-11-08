@@ -791,10 +791,9 @@ a.tl-row:focus-visible .tl-arrow {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4rem 1.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3rem 1.5rem;
 }
-.work-item--feature { grid-column: 1 / -1; }
 
 .work-card {
   display: block;
@@ -809,7 +808,6 @@ a.tl-row:focus-visible .tl-arrow {
   background: var(--work-tile);
   box-shadow: inset 0 0 0 1px var(--border);
 }
-.work-item--feature .work-media { aspect-ratio: 16 / 9; }
 
 .work-media img,
 .work-media video {
@@ -838,7 +836,7 @@ a.tl-row:focus-visible .tl-arrow {
     var(--surface-warm);
 }
 .work-media-word {
-  font-size: clamp(1.75rem, 3.4vw, 2.75rem);
+  font-size: clamp(1.5rem, 2.2vw, 2rem);
   font-weight: 500;
   letter-spacing: -0.035em;
   line-height: 1;
@@ -875,18 +873,6 @@ a.tl-row:focus-visible .tl-arrow {
   color: var(--muted);
   line-height: 1.55;
 }
-.work-tag {
-  grid-column: 1 / -1;
-  justify-self: start;
-  margin-top: 0.8rem;
-  padding: 0.2rem 0.55rem;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  color: var(--muted);
-}
-
 .work-arrow {
   display: inline-block;
   margin-left: 0.15rem;
@@ -935,13 +921,16 @@ a.work-card:hover .work-arrow { transform: translate(2px, -1px); }
 }
 .folio-links a:hover { color: var(--fg); }
 
+@media (max-width: 1024px) {
+  .work-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 760px) {
   .folio-page { padding: 0 1.25rem 2.5rem; }
   .folio-nav { gap: 1.1rem; }
   .folio-nav a[href="#work"] { display: none; }
   .folio-intro { padding: 4rem 0 4rem; }
   .work-grid { grid-template-columns: 1fr; gap: 3rem; }
-  .work-item--feature .work-media { aspect-ratio: 3 / 2; }
   .folio-footer { margin-top: 6rem; }
 }
 
