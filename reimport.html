@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reimport — One-click updates for imported 3D content</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script>
+    // Anti-FOUC: apply saved theme before stylesheet parses.
+    (function () {
+      try {
+        var t = localStorage.getItem('theme');
+        if (t === 'light' || t === 'dark') {
+          document.documentElement.setAttribute('data-theme', t);
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="cs-page">
+  <header class="cs-header">
+    <div class="cs-header-inner">
+      <a href="/" class="cs-back">← Studio Features</a>
+      <div class="cs-header-end">
+        <a href="/" class="logo">Roblox Studio</a>
+        <button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle theme">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-theme-icon="system">
+            <rect x="3" y="4" width="18" height="13" rx="2"/>
+            <path d="M8 21h8M12 17v4"/>
+          </svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-theme-icon="light">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+          </svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-theme-icon="dark">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+        <span class="visually-hidden" aria-live="polite" data-theme-live></span>
+      </div>
+    </div>
+  </header>
+
+  <div class="cs-layout">
+    <aside class="cs-sidebar">
+      <nav class="cs-anchors" aria-label="Sections">
+        <p class="cs-anchors-label">On this page</p>
+        <a href="#overview" class="cs-anchors-link">Overview</a>
+        <a href="#how" class="cs-anchors-link">How it works</a>
+        <a href="#get-started" class="cs-anchors-link">Get started</a>
+      </nav>
+    </aside>
+
+    <main class="cs-main">
+      <section class="cs-hero" id="overview">
+        <p class="cs-eyebrow">Studio Beta · v0.1.1</p>
+        <h1 class="cs-title">Reimport, one-click updates for imported 3D content</h1>
+        <p class="cs-subhead">Reimport enables frictionless iteration with one-click, non-destructive updates from external files</p>
+
+        <div class="cs-cta-row">
+          <a href="https://devforum.roblox.com/t/studio-beta-reimport-one-click-updates-for-imported-3d-content/4068650" class="cs-cta-primary">Read the announcement →</a>
+          <a href="#get-started" class="cs-cta-secondary">Try the beta</a>
+        </div>
+
+      </section>
+
+      <figure class="cs-prototype" data-prototype aria-label="Reimport interactive prototype">
+        <div class="cs-prototype-toolbar">
+          <div class="cs-prototype-toolbar-left">
+            <span class="cs-prototype-dots" aria-hidden="true">
+              <span class="cs-prototype-dot"></span>
+              <span class="cs-prototype-dot"></span>
+              <span class="cs-prototype-dot"></span>
+            </span>
+            <span class="cs-prototype-label">
+              <span class="cs-prototype-status" aria-hidden="true"></span>
+              Interactive prototype
+            </span>
+          </div>
+          <div class="cs-prototype-toolbar-right">
+            <button type="button" class="cs-prototype-action" data-action="reset" aria-label="Reset prototype">Reset</button>
+            <a class="cs-prototype-action cs-prototype-action--link" data-action="open" href="#" target="_blank" rel="noopener noreferrer" hidden>Open in new tab ↗</a>
+          </div>
+        </div>
+
+        <div class="cs-prototype-stage">
+          <!-- loading skeleton — visible until iframe loads or inline demo is ready -->
+          <div class="cs-prototype-skeleton" aria-hidden="true">
+            <span class="cs-prototype-skeleton-shimmer"></span>
+            <span class="cs-prototype-skeleton-caption">Loading prototype…</span>
+          </div>
+
+          <!--
+            Iframe variant — uncomment and set src to embed any prototype
+            (Figma prototype, CodeSandbox, custom HTML demo, video, etc.):
+
+            <iframe
+              class="cs-prototype-iframe"
+              src="https://www.figma.com/embed?embed_host=share&url=YOUR_PROTOTYPE_URL"
+              title="Reimport prototype"
+              loading="lazy"
+              allow="fullscreen; clipboard-write"
+              allowfullscreen></iframe>
+          -->
+
+          <!-- Inline demo: Roblox Studio Explorer right-click → Reimport -->
+          <div class="cs-prototype-demo" data-demo>
+            <div class="cs-prototype-demo-window">
+              <div class="cs-prototype-demo-titlebar">Explorer</div>
+              <div class="cs-prototype-demo-tree" role="tree">
+                <div class="cs-prototype-demo-node" role="treeitem" aria-expanded="true">
+                  <span class="cs-prototype-demo-caret">▾</span>
+                  <span class="cs-prototype-demo-icon" aria-hidden="true">📁</span>
+                  <span>Workspace</span>
+                </div>
+                <div class="cs-prototype-demo-node cs-prototype-demo-node--child" role="treeitem" tabindex="0" data-target>
+                  <span class="cs-prototype-demo-caret">▸</span>
+                  <span class="cs-prototype-demo-icon" aria-hidden="true">🧱</span>
+                  <span>Model</span>
+                </div>
+              </div>
+              <p class="cs-prototype-demo-hint">Right-click <strong>Model</strong> (or tap it) to open the context menu.</p>
+            </div>
+
+            <div class="cs-prototype-demo-menu" data-menu role="menu" hidden>
+              <button type="button" class="cs-prototype-demo-menu-item" role="menuitem">
+                <span>Cut</span><kbd>⌘X</kbd>
+              </button>
+              <button type="button" class="cs-prototype-demo-menu-item" role="menuitem">
+                <span>Copy</span><kbd>⌘C</kbd>
+              </button>
+              <button type="button" class="cs-prototype-demo-menu-item" role="menuitem">
+                <span>Duplicate</span><kbd>⌘D</kbd>
+              </button>
+              <div class="cs-prototype-demo-menu-divider" role="separator"></div>
+              <button type="button" class="cs-prototype-demo-menu-item" role="menuitem" data-reimport>
+                <span>Reimport</span><kbd>⌥⇧R</kbd>
+              </button>
+            </div>
+
+            <div class="cs-prototype-demo-toast" data-toast aria-live="polite" hidden>
+              <span class="cs-prototype-demo-toast-icon" aria-hidden="true"></span>
+              <span class="cs-prototype-demo-toast-state"></span>
+            </div>
+          </div>
+
+          <!-- click-to-interact overlay (prevents accidental scroll-jacking) -->
+          <button type="button" class="cs-prototype-overlay" data-overlay aria-label="Click to start the prototype">
+            <span class="cs-prototype-overlay-icon" aria-hidden="true">▶</span>
+            <span class="cs-prototype-overlay-hint">Click to start the prototype</span>
+          </button>
+        </div>
+      </figure>
+
+      <section class="cs-section" id="how">
+        <p class="cs-section-num">01 — How it works</p>
+        <h2 class="cs-section-title">Right-click. Reimport. Keep creating.</h2>
+        <div class="cs-prose">
+          <p>Reimport updates instances in-place and non-destructively — only modifying the properties that actually changed in the source file. Welds, part colors, scripts, and other Studio-side edits stay intact.</p>
+          <p>File paths and settings persist across Studio sessions, so once a Model or SurfaceAppearance is linked to a source file, future updates are a single click.</p>
+        </div>
+      </section>
+
+      <section class="cs-stats">
+        <div class="cs-stat">
+          <span class="cs-stat-num">81.72</span>
+          <span class="cs-stat-label">sentiment score (Outstanding)</span>
+        </div>
+        <div class="cs-stat">
+          <span class="cs-stat-num">1hr</span>
+          <span class="cs-stat-label">typical OTA hotfix turnaround</span>
+        </div>
+        <div class="cs-stat">
+          <span class="cs-stat-num">1-click</span>
+          <span class="cs-stat-label">updates from any external file</span>
+        </div>
+        <div class="cs-stat">
+          <span class="cs-stat-num">v0.1.1</span>
+          <span class="cs-stat-label">current shipped version</span>
+        </div>
+      </section>
+
+      <section class="cs-section" id="get-started">
+        <p class="cs-section-num">02 — Get started</p>
+        <h2 class="cs-section-title">Two minutes to your first reimport.</h2>
+        <div class="cs-prose">
+          <ol class="cs-steps">
+            <li>Open Studio and go to <strong>File &gt; Beta Features</strong>.</li>
+            <li>Enable <strong>Reimport</strong> and restart Studio.</li>
+            <li>Right-click any Model or SurfaceAppearance in the Explorer.</li>
+            <li>Choose <strong>Reimport</strong> — or hit <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd>.</li>
+            <li>Pick the source file on first use; settings persist after that.</li>
+          </ol>
+          <p>Check the Configure dialog title bar to confirm your version. New fixes ship over-the-air, often within hours.</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <footer class="cs-footer">
+    <div class="cs-footer-inner">
+      <p class="cs-footer-quote">"Reimport enables frictionless iteration with one-click, non-destructive updates from external files."</p>
+      <nav class="cs-footer-nav">
+        <a href="https://devforum.roblox.com/">DevForum</a>
+        <a href="https://create.roblox.com/docs">Docs</a>
+        <a href="https://devforum.roblox.com/t/studio-beta-reimport-one-click-updates-for-imported-3d-content/4068650">Feedback</a>
+      </nav>
+      <p class="cs-footer-copy">© <span id="year">2026</span> Roblox Corporation</p>
+    </div>
+  </footer>
+
+  <script src="theme.js"></script>
+
+  <script>
+    // ---------- scrollspy ----------
+    (function () {
+      var links = document.querySelectorAll('.cs-anchors-link');
+      var map = {};
+      links.forEach(function (a) {
+        var id = a.getAttribute('href').slice(1);
+        var target = document.getElementById(id);
+        if (target) map[id] = a;
+      });
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) {
+            links.forEach(function (a) { a.classList.remove('is-active'); });
+            var link = map[e.target.id];
+            if (link) link.classList.add('is-active');
+          }
+        });
+      }, { rootMargin: '-30% 0px -60% 0px', threshold: 0 });
+      Object.keys(map).forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) io.observe(el);
+      });
+    })();
+  </script>
+
+  <script>
+    // ---------- prototype slot: overlay + iframe wiring + inline Studio demo ----------
+    (function () {
+      var root = document.querySelector('[data-prototype]');
+      if (!root) return;
+
+      var stage    = root.querySelector('.cs-prototype-stage');
+      var overlay  = root.querySelector('[data-overlay]');
+      var iframe   = root.querySelector('iframe.cs-prototype-iframe');
+      var resetBtn = root.querySelector('[data-action="reset"]');
+      var openBtn  = root.querySelector('[data-action="open"]');
+      var demo     = root.querySelector('[data-demo]');
+
+      // Hide skeleton: iframe waits for load; inline demo is ready immediately.
+      function markLoaded() { root.classList.add('is-loaded'); }
+      if (iframe) {
+        if (iframe.complete) markLoaded();
+        else iframe.addEventListener('load', markLoaded);
+        iframe.addEventListener('focus', function () { root.classList.add('is-iframe-focused'); });
+        iframe.addEventListener('blur',  function () { root.classList.remove('is-iframe-focused'); });
+        if (openBtn && iframe.src) {
+          openBtn.href = iframe.src;
+          openBtn.hidden = false;
+        }
+      } else if (demo) {
+        markLoaded();
+      }
+
+      // Click-to-interact overlay
+      function activate() {
+        root.classList.add('is-active');
+        overlay.setAttribute('aria-hidden', 'true');
+        overlay.tabIndex = -1;
+        var firstTarget = demo && demo.querySelector('[data-target]');
+        if (firstTarget) firstTarget.focus({ preventScroll: true });
+        else if (iframe) iframe.focus({ preventScroll: true });
+      }
+      function deactivate() {
+        root.classList.remove('is-active');
+        overlay.removeAttribute('aria-hidden');
+        overlay.tabIndex = 0;
+      }
+      if (overlay) {
+        overlay.addEventListener('click', activate);
+        overlay.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); }
+        });
+      }
+
+      // ---------- inline demo: right-click → Reimport ----------
+      if (demo) {
+        var target   = demo.querySelector('[data-target]');
+        var menu     = demo.querySelector('[data-menu]');
+        var reimport = demo.querySelector('[data-reimport]');
+        var toast    = demo.querySelector('[data-toast]');
+        var toastIcon  = toast.querySelector('.cs-prototype-demo-toast-icon');
+        var toastState = toast.querySelector('.cs-prototype-demo-toast-state');
+        var menuItems = menu.querySelectorAll('.cs-prototype-demo-menu-item');
+        var reimportTimer;
+
+        function openMenu(x, y) {
+          menu.hidden = false;
+          var stageRect = stage.getBoundingClientRect();
+          var pad = 6;
+          var maxX = stageRect.width  - menu.offsetWidth  - pad;
+          var maxY = stageRect.height - menu.offsetHeight - pad;
+          var localX = Math.max(pad, Math.min(maxX, x - stageRect.left));
+          var localY = Math.max(pad, Math.min(maxY, y - stageRect.top));
+          menu.style.left = localX + 'px';
+          menu.style.top  = localY + 'px';
+          target.classList.add('is-selected');
+          // Move keyboard focus into the menu so Tab/Enter work immediately
+          var first = menu.querySelector('.cs-prototype-demo-menu-item');
+          if (first) first.focus({ preventScroll: true });
+        }
+        function closeMenu() {
+          if (menu.hidden) return;
+          menu.hidden = true;
+          target.classList.remove('is-selected');
+        }
+        function showToast(text, state) {
+          toast.hidden = false;
+          toast.classList.toggle('is-success', state === 'success');
+          toastIcon.textContent  = state === 'success' ? '✓' : '↻';
+          toastState.textContent = text;
+        }
+        function hideToast() {
+          toast.hidden = true;
+          toast.classList.remove('is-success');
+        }
+        function resetDemo() {
+          if (reimportTimer) { clearTimeout(reimportTimer); reimportTimer = null; }
+          closeMenu();
+          hideToast();
+        }
+
+        var isCoarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+
+        target.addEventListener('contextmenu', function (e) {
+          e.preventDefault();
+          openMenu(e.clientX, e.clientY);
+        });
+        target.addEventListener('click', function () {
+          // Touch users (no right-click available) tap to open the menu;
+          // mouse users on desktop just select the node.
+          if (isCoarsePointer) {
+            var rect = target.getBoundingClientRect();
+            openMenu(rect.right - 8, rect.bottom);
+          } else {
+            target.classList.add('is-selected');
+          }
+        });
+        target.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ' || e.key === 'ContextMenu') {
+            e.preventDefault();
+            var rect = target.getBoundingClientRect();
+            openMenu(rect.right - 8, rect.bottom);
+          }
+        });
+
+        // Arrow-key navigation inside the menu
+        menu.addEventListener('keydown', function (e) {
+          var idx = Array.prototype.indexOf.call(menuItems, document.activeElement);
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            menuItems[(idx + 1) % menuItems.length].focus();
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            menuItems[(idx - 1 + menuItems.length) % menuItems.length].focus();
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            closeMenu();
+            target.focus({ preventScroll: true });
+          }
+        });
+
+        document.addEventListener('click', function (e) {
+          if (menu.hidden) return;
+          if (e.target.closest('[data-menu]')) return;
+          if (e.target.closest('[data-target]')) return;
+          closeMenu();
+        });
+        document.addEventListener('contextmenu', function (e) {
+          if (menu.hidden) return;
+          if (e.target.closest('[data-target]')) return;
+          closeMenu();
+        });
+
+        reimport.addEventListener('click', function () {
+          if (reimportTimer) clearTimeout(reimportTimer);
+          closeMenu();
+          showToast('Reimporting…', 'progress');
+          reimportTimer = setTimeout(function () {
+            showToast('Updated', 'success');
+            reimportTimer = setTimeout(hideToast, 1800);
+          }, 900);
+        });
+
+        if (resetBtn) {
+          resetBtn.addEventListener('click', function () {
+            resetDemo();
+            deactivate();
+            if (iframe && iframe.src) {
+              var src = iframe.src;
+              root.classList.remove('is-loaded');
+              iframe.src = 'about:blank';
+              // restore on next frame so the load event fires cleanly
+              requestAnimationFrame(function () { iframe.src = src; });
+            }
+          });
+        }
+      } else if (resetBtn && iframe) {
+        // iframe-only reset: reload the embedded prototype
+        resetBtn.addEventListener('click', function () {
+          deactivate();
+          var src = iframe.src;
+          root.classList.remove('is-loaded');
+          iframe.src = 'about:blank';
+          requestAnimationFrame(function () { iframe.src = src; });
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
