@@ -54,7 +54,7 @@
         <h2 class="folio-section-title" id="work-title">Work</h2>
         <ul class="work-grid">
           <li class="work-item">
-            <article class="work-card" data-work
+            <a class="work-card" href="#planning-mode" data-open="planning-mode" data-work
               data-poster="images/work/planning-mode.jpg" data-poster-dark="images/work/planning-mode-dark.jpg"
               data-video="images/work/planning-mode-card.mp4" data-video-dark="images/work/planning-mode-card-dark.mp4">
               <div class="work-media">
@@ -64,11 +64,11 @@
               <div class="work-info">
                 <h3 class="work-title">Planning Mode</h3>
               </div>
-            </article>
+            </a>
           </li>
 
           <li class="work-item">
-            <article class="work-card" data-work
+            <a class="work-card" href="#skills" data-open="skills" data-work
               data-poster="images/work/skills.jpg" data-poster-dark="images/work/skills-dark.jpg"
               data-video="images/work/skills-card.mp4" data-video-dark="images/work/skills-card-dark.mp4">
               <div class="work-media">
@@ -78,11 +78,11 @@
               <div class="work-info">
                 <h3 class="work-title">Skills</h3>
               </div>
-            </article>
+            </a>
           </li>
 
           <li class="work-item">
-            <article class="work-card" data-work
+            <a class="work-card" href="#build" data-open="build" data-work
               data-poster="images/work/build.jpg" data-poster-dark="images/work/build-dark.jpg">
               <div class="work-media work-media--alt">
                 <img src="images/work/build.jpg" alt="The BUILD mobile app listing games in progress" width="1024" height="683" loading="lazy" />
@@ -90,11 +90,11 @@
               <div class="work-info">
                 <h3 class="work-title">BUILD</h3>
               </div>
-            </article>
+            </a>
           </li>
 
           <li class="work-item">
-            <a class="work-card" href="https://emilysdesk.top" data-work
+            <a class="work-card" href="#emilys-desktop" data-open="emilys-desktop" data-work
               data-poster="images/work/emilys-desktop.jpg" data-poster-dark="images/work/emilys-desktop-dark.jpg"
               data-video="images/work/emilys-desktop-card.mp4" data-video-dark="images/work/emilys-desktop-card-dark.mp4">
               <div class="work-media work-media--alt">
@@ -102,7 +102,7 @@
                 <video muted loop playsinline preload="none" aria-hidden="true"></video>
               </div>
               <div class="work-info">
-                <h3 class="work-title">Emily's Desktop <span class="work-arrow" aria-hidden="true">↗</span></h3>
+                <h3 class="work-title">Emily's Desktop</h3>
               </div>
             </a>
           </li>
@@ -135,6 +135,7 @@
 
   <script src="theme.js"></script>
   <script src="peek.js"></script>
+  <script src="viewer.js"></script>
   <script>
     // Work cards: theme-matched covers, and the card video plays while hovered
     // (or while mostly on screen on touch devices).
