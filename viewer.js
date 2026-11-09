@@ -7,8 +7,10 @@
       client: 'Roblox Studio · 2026',
       description: "Giving Studio's AI Assistant a place to plan with the creator before it acts. Creators review and direct intent before anything gets built.",
       media: [
-        { type: 'video', src: 'images/work/planning-mode-card.mp4', dark: 'images/work/planning-mode-card-dark.mp4', poster: 'images/work/planning-mode.jpg', posterDark: 'images/work/planning-mode-dark.jpg' },
-        { type: 'image', src: 'images/work/planning-mode.jpg', dark: 'images/work/planning-mode-dark.jpg', alt: 'Roblox Studio with the Assistant laying out a step-by-step plan for a park mini-game' }
+        { type: 'video', src: 'images/work/planning-mode-questions.mp4', poster: 'images/work/planning-mode-questions.jpg', alt: 'The Assistant asking clarifying questions about an obby before planning it' },
+        { type: 'image', src: 'images/work/planning-mode-plan.jpg', alt: 'The Assistant proposing a task list for the obby, with Ask again, Reject, and Build' },
+        { type: 'video', src: 'images/work/planning-mode-flow.mp4', poster: 'images/work/planning-mode-built.jpg', alt: 'Roblox Studio going from a /plan prompt through questions and a task list to a built obby' },
+        { type: 'video', src: 'images/work/planning-mode-card.mp4', dark: 'images/work/planning-mode-card-dark.mp4', poster: 'images/work/planning-mode.jpg', posterDark: 'images/work/planning-mode-dark.jpg' }
       ]
     },
     'skills': {
