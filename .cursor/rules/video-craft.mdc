@@ -1,0 +1,30 @@
+---
+description: Craft bar for portfolio videos, clips, posters and screenshots (images/work)
+alwaysApply: true
+---
+
+# Portfolio media craft
+
+Treat every clip like a shipped product surface. Verify it frame by frame, not by eye at thumbnail size.
+
+## Motion
+- No jitter: segment into stable states, hold through brief flickers, and render moves with subpixel shifts (blend two rolls), never integer snaps or exponential follow.
+- Transitions ease with a little bounce (easeOutBack or a damped spring, around 0.6–0.8s), and the spring must land exactly on its target (force it to converge at the end).
+- When one UI becomes another (composer to card), do a container transform: one rounded rect morphs, content rides its anchored edge, the two sides crossfade with overlap, and nothing is ever an empty box.
+- Check seams numerically: the mean frame-to-frame difference should taper smoothly into and out of every transition, with no spike at the handoff to real footage.
+
+## Framing
+- Show only what tells the story. Crop to the subject, remove stray chrome (history rows, queued chips, headers), and scale up (about 1.25x) so it reads on the card.
+- Don't clip overlays like menus and popovers; widen the crop or rebuild the edge cleanly.
+- Cursor overlays are synced to `video.currentTime`, with keyframes in frame percentages and a visible press on each click (see `CURSOR_TRACKS` in `viewer.js`).
+
+## Light and dark
+- Every clip and still ships both themes: `src`/`dark` and `poster`/`posterDark` in `viewer.js`, `data-video`/`data-video-dark` on cards.
+- Light versions must match the real app, not a guessed inversion. For Roblox Studio, use the Foundation tokens in `/Applications/RobloxStudio.app/.../RbxDesignFoundations-*/RbxDesignFoundations/Default/Light.lua` (panel `#F7F7F8`, card `#FFFFFF`, text `#202227`/`#494D5A`/`#6A6F81`, navy-tinted strokes, `#335FFF` buttons unchanged).
+- Recolor only the app chrome. Keep 3D viewports, colored icons and brand colors as they are.
+- Use `tools/media/lighten_studio.py` (structural recolor: opening-based surfaces, coverage-based text, luminance coverage for chroma-subsampled sources) and `tools/media/mockup_light.py` for laptop mockups (per-frame screen and viewport detection).
+
+## Verification before reporting
+- Look at contact sheets and full-resolution crops of risky areas: borders, buttons, small links, corners, transitions.
+- Confirm frame counts match the source, regenerate posters from the final clip, and check the page in both themes in the browser.
+- Keep dark originals as `*-dark` and back up replaced files before overwriting.

@@ -85,6 +85,11 @@
   --peek-chip-fg: #ffffff;
   --peek-glare: rgba(255, 255, 255, 0.35);
 
+  /* pointer drawn over demo clips (light and dark recordings, so same in both themes) */
+  --demo-cursor-shadow: rgba(0, 0, 0, 0.55);
+  --demo-cursor-ring: #ffffff;
+  --demo-cursor-ring-edge: rgba(0, 0, 0, 0.45);
+
   /* work card tile: matches the backdrop baked into the cover images */
   --work-tile: #fdfdfd;
   --work-tile-alt: #ffffff;
@@ -408,7 +413,6 @@ body {
   height: 18px;
   display: none;
 }
-.theme-toggle[data-theme-state="system"] svg[data-theme-icon="system"],
 .theme-toggle[data-theme-state="light"] svg[data-theme-icon="light"],
 .theme-toggle[data-theme-state="dark"] svg[data-theme-icon="dark"] {
   display: block;
@@ -791,7 +795,16 @@ a.tl-row:focus-visible .tl-arrow {
   overflow: hidden;
   border-radius: 16px;
   background: var(--work-tile);
+}
+/* outline sits above the media so full-bleed covers keep their edge */
+.work-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
   box-shadow: inset 0 0 0 1px var(--border);
+  pointer-events: none;
 }
 
 /* the BUILD and desktop covers were exported on a slightly different backdrop */
@@ -814,6 +827,55 @@ a.tl-row:focus-visible .tl-arrow {
 .work-card:hover .work-media video,
 .work-card:focus-visible .work-media img,
 .work-card:focus-visible .work-media video { transform: scale(1.02); }
+
+/* the planning clip is framed so a cursor can scale with the picture */
+.work-frame {
+  position: absolute;
+  inset: 0;
+  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.work-card:hover .work-frame,
+.work-card:focus-visible .work-frame { transform: scale(1.02); }
+.work-card:hover .work-frame img,
+.work-card:hover .work-frame video,
+.work-card:focus-visible .work-frame img,
+.work-card:focus-visible .work-frame video { transform: none; }
+
+/* pointer drawn over the planning-mode recording, which was captured without one */
+.demo-cursor {
+  position: absolute;
+  z-index: 2;
+  left: 61.5%;
+  top: 70%;
+  width: 18px;
+  height: 22px;
+  pointer-events: none;
+  opacity: 0;
+  filter: drop-shadow(0 1px 1.5px var(--demo-cursor-shadow));
+  transform: translate(-2px, -1px);
+  transition: opacity 0.25s ease, transform 0.08s ease;
+}
+.demo-cursor svg { display: block; width: 100%; height: 100%; }
+.demo-cursor.is-on { opacity: 1; }
+.demo-cursor.is-down { transform: translate(-2px, -1px) scale(0.82); }
+.demo-cursor::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--demo-cursor-ring);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--demo-cursor-ring-edge);
+  opacity: 0;
+  transform: translate(-5px, -5px) scale(0.4);
+}
+.demo-cursor.is-down::after { animation: cursor-tap 0.4s ease-out; }
+@keyframes cursor-tap {
+  0% { opacity: 0.85; transform: translate(-5px, -5px) scale(0.45); }
+  100% { opacity: 0; transform: translate(-5px, -5px) scale(2.1); }
+}
 
 /* type-only tile for projects without cover art yet */
 .work-media--type {
@@ -1083,9 +1145,14 @@ body.is-viewing { overflow: hidden; }
 
 @media (prefers-reduced-motion: reduce) {
   .work-media img,
-  .work-media video { transition: none; }
+  .work-media video,
+  .work-frame,
+  .demo-cursor { transition: none; }
   .work-card:hover .work-media img,
-  .work-card:hover .work-media video { transform: none; }
+  .work-card:hover .work-media video,
+  .work-card:hover .work-frame,
+  .work-card:focus-visible .work-frame { transform: none; }
+  .demo-cursor.is-down::after { animation: none; }
 }
 
 /* ============================================================

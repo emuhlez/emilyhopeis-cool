@@ -1,15 +1,155 @@
 // Project viewer: a full-screen sequence of photos and videos with a short
 // description. Tiles link to #<project-id>, so a viewer state is shareable.
 (function () {
+  // The planning clips were recorded without a pointer. These are the clicks
+  // in each clip, as percentages of the 1600×900 frame, timed to the cuts.
+  var CHAT_CURSOR = [
+    { t: 0.00, x: 47.0, y: 49.3 },
+    { t: 0.30, x: 41.5, y: 60.9 },
+    { t: 0.45, x: 41.5, y: 60.9, click: true },
+    { t: 0.62, x: 41.5, y: 60.9 },
+    { t: 2.80, x: 60.0, y: 61.1 },
+    { t: 3.28, x: 60.0, y: 61.1, click: true },
+    { t: 3.46, x: 60.0, y: 61.1 },
+    { t: 6.30, x: 43.8, y: 42.9 },
+    { t: 7.12, x: 43.8, y: 42.9, click: true },
+    { t: 7.30, x: 43.8, y: 42.9 },
+    { t: 8.10, x: 43.8, y: 32.1 },
+    { t: 8.68, x: 43.8, y: 32.1, click: true },
+    { t: 8.86, x: 43.8, y: 32.1 },
+    { t: 9.70, x: 43.8, y: 32.1 },
+    { t: 10.28, x: 43.8, y: 32.1, click: true },
+    { t: 10.46, x: 43.8, y: 32.1 },
+    { t: 10.85, x: 53.3, y: 71.2 },
+    { t: 11.08, x: 53.3, y: 71.2, click: true },
+    { t: 11.26, x: 53.3, y: 71.2 },
+    { t: 12.15, x: 43.8, y: 27.0 },
+    { t: 12.62, x: 43.8, y: 27.0, click: true },
+    { t: 12.80, x: 43.8, y: 27.0 },
+    { t: 12.98, x: 43.8, y: 37.6 },
+    { t: 13.15, x: 43.8, y: 37.6, click: true },
+    { t: 13.33, x: 43.8, y: 37.6 },
+    { t: 13.80, x: 53.3, y: 76.7 },
+    { t: 14.06, x: 53.3, y: 76.7, click: true },
+    { t: 14.24, x: 53.3, y: 76.7 },
+    { t: 15.60, x: 51.1, y: 68.8 },
+    { t: 16.34, x: 51.1, y: 68.8, click: true },
+    { t: 16.52, x: 51.1, y: 68.8 },
+    { t: 17.30, x: 56.0, y: 70.1 },
+    { t: 18.40, x: 56.0, y: 70.1 }
+  ].map(function (p) {
+    // the clip is zoomed 1.25× around its center after these were measured
+    return { t: p.t, x: 50 + (p.x - 50) * 1.25, y: 50 + (p.y - 50) * 1.25, click: p.click };
+  });
+
+  var QA_CURSOR = [
+    { t: 0.25, x: 61.5, y: 70.0 },
+    { t: 1.20, x: 43.1, y: 44.6 },
+    { t: 2.05, x: 43.1, y: 44.6, click: true },
+    { t: 2.24, x: 43.1, y: 44.6 },
+    { t: 3.05, x: 43.8, y: 31.1 },
+    { t: 3.55, x: 43.8, y: 31.1, click: true },
+    { t: 3.74, x: 43.8, y: 31.1 },
+    { t: 4.55, x: 42.5, y: 30.8 },
+    { t: 5.12, x: 42.5, y: 30.8, click: true },
+    { t: 5.30, x: 42.5, y: 30.8 },
+    { t: 6.15, x: 54.1, y: 80.7 },
+    { t: 6.64, x: 54.1, y: 80.7, click: true },
+    { t: 6.82, x: 54.1, y: 80.7 },
+    { t: 7.60, x: 41.9, y: 24.0 },
+    { t: 8.25, x: 41.9, y: 24.0, click: true },
+    { t: 8.42, x: 41.9, y: 24.0 },
+    { t: 8.72, x: 41.9, y: 37.8, click: true },
+    { t: 8.90, x: 41.9, y: 37.8 },
+    { t: 9.70, x: 54.1, y: 87.6 },
+    { t: 10.44, x: 54.1, y: 87.6, click: true },
+    { t: 10.62, x: 54.1, y: 87.6 },
+    { t: 11.45, x: 51.3, y: 73.8 },
+    { t: 12.90, x: 51.3, y: 73.8 }
+  ];
+
+  function easeInOut(u) {
+    return u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+  }
+
+  var CURSOR_TRACKS = {
+    'planning-mode-chat': CHAT_CURSOR,
+    'planning-mode-qa': QA_CURSOR
+  };
+
+  function trackFor(src) {
+    for (var name in CURSOR_TRACKS) {
+      if ((src || '').indexOf(name) !== -1) return CURSOR_TRACKS[name];
+    }
+    return null;
+  }
+
+  function sampleCursor(track, time) {
+    var a = track[0];
+    for (var i = 1; i < track.length; i++) {
+      var b = track[i];
+      if (time <= b.t || i === track.length - 1) {
+        var u = Math.max(0, Math.min(1, (time - a.t) / ((b.t - a.t) || 1)));
+        var e = easeInOut(u);
+        return {
+          x: a.x + (b.x - a.x) * e,
+          y: a.y + (b.y - a.y) * e,
+          down: !!(a.click && time < a.t + 0.16)
+        };
+      }
+      a = b;
+    }
+    return { x: a.x, y: a.y, down: false };
+  }
+
+  var CURSOR_SVG =
+    '<svg viewBox="0 0 18 22" aria-hidden="true">' +
+      '<path d="M2.1 1.1 L2.1 16.6 L5.6 13.3 L8.5 19.6 L10.8 18.5 L7.8 12.2 L13 12.2 Z" fill="#fff" stroke="#1a1a1a" stroke-width="1.2" stroke-linejoin="round"/>' +
+    '</svg>';
+
+  // Follows video.currentTime so the pointer stays on the clicks, including loops.
+  function attachDemoCursor(host, video) {
+    if (!host || !video || host.querySelector('.demo-cursor')) return;
+    var el = document.createElement('span');
+    el.className = 'demo-cursor';
+    el.setAttribute('aria-hidden', 'true');
+    el.innerHTML = CURSOR_SVG;
+    host.appendChild(el);
+
+    var raf = 0;
+    function track() {
+      return trackFor(video.currentSrc || video.getAttribute('src'));
+    }
+    function matches() { return !!track(); }
+    function stop() {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+      el.classList.remove('is-on', 'is-down');
+    }
+    function tick() {
+      raf = requestAnimationFrame(tick);
+      var tr = track();
+      if (!video.isConnected || !tr || video.paused) { stop(); return; }
+      var s = sampleCursor(tr, video.currentTime || 0);
+      el.style.left = s.x + '%';
+      el.style.top = s.y + '%';
+      el.classList.toggle('is-down', s.down);
+      el.classList.add('is-on');
+    }
+    function start() { if (matches() && !raf) tick(); }
+    video.addEventListener('play', start);
+    video.addEventListener('playing', start);
+    video.addEventListener('pause', stop);
+    if (!video.paused && matches()) tick();
+  }
   var PROJECTS = {
     'planning-mode': {
       title: 'Planning Mode',
       client: 'Roblox Studio · 2026',
       description: "Giving Studio's AI Assistant a place to plan with the creator before it acts. Creators review and direct intent before anything gets built.",
       media: [
-        { type: 'video', src: 'images/work/planning-mode-qa.mp4', poster: 'images/work/planning-mode-qa.jpg', alt: 'The Assistant asking clarifying questions about an obby before planning it' },
-        { type: 'image', src: 'images/work/planning-mode-plan.jpg', alt: 'The Assistant proposing a task list for the obby, with Ask again, Reject, and Build' },
-        { type: 'video', src: 'images/work/planning-mode-flow.mp4', poster: 'images/work/planning-mode-built.jpg', alt: 'Roblox Studio going from a /plan prompt through questions and a task list to a built obby' },
+        { type: 'video', src: 'images/work/planning-mode-chat.mp4', dark: 'images/work/planning-mode-chat-dark.mp4', poster: 'images/work/planning-mode-chat.jpg', posterDark: 'images/work/planning-mode-chat-dark.jpg', alt: 'The Assistant asking clarifying questions about an obby before planning it' },
+        { type: 'video', src: 'images/work/planning-mode-flow.mp4', dark: 'images/work/planning-mode-flow-dark.mp4', poster: 'images/work/planning-mode-built.jpg', posterDark: 'images/work/planning-mode-built-dark.jpg', alt: 'Roblox Studio going from a /plan prompt through questions and a task list to a built obby' },
         { type: 'video', src: 'images/work/planning-mode-card.mp4', dark: 'images/work/planning-mode-card-dark.mp4', poster: 'images/work/planning-mode.jpg', posterDark: 'images/work/planning-mode-dark.jpg' }
       ]
     },
@@ -112,7 +252,10 @@
     }
     node.className = 'viewer-asset';
     els.media.replaceChildren(node);
-    if (node.play) node.play().catch(function () {});
+    if (node.play) {
+      node.play().catch(function () {});
+      if (trackFor(node.src)) attachDemoCursor(els.media, node);
+    }
 
     els.count.textContent = (index + 1) + ' / ' + current.media.length;
     Array.prototype.forEach.call(els.thumbs.children, function (btn, i) {
@@ -222,6 +365,12 @@
     var dx = e.changedTouches[0].clientX - touchX;
     touchX = null;
     if (Math.abs(dx) > 40) go(index + (dx < 0 ? 1 : -1));
+  });
+
+  document.querySelectorAll('[data-video*="planning-mode-"]').forEach(function (card) {
+    if (!trackFor(card.dataset.video)) return;
+    var host = card.querySelector('.work-frame') || card.querySelector('.work-media');
+    attachDemoCursor(host, card.querySelector('video'));
   });
 
   document.querySelectorAll('[data-open]').forEach(function (card) {
